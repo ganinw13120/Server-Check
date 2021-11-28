@@ -30,7 +30,7 @@ func setupTimeZone() error {
 
 func fiberConfig() fiber.Config {
 	return fiber.Config{
-		Prefork:       true,
+		Prefork:       false,
 		CaseSensitive: true,
 		StrictRouting: true,
 		ServerHeader:  "Fiber",
