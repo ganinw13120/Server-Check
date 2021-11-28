@@ -1,0 +1,51 @@
+version: '3.3'
+services:
+  redis:
+    image: redis
+    container_name: redis
+    ports:
+      - 6379:6379
+    volumes:
+      - ./infrastructure/data/redis:/data
+      - ./infrastructure/config/redis.conf:/redis.conf
+    command: redis-server /redis.conf
+  
+  k6:
+    image: loadimpact/k6
+    container_name: k6
+    environment:
+      - K6_OUT=influxdb=http://influxdb:8086/k6_log
+    volumes:
+      - ./test:/scripts
+
+  influxdb:
+    image: influxdb:1.8.10
+    container_name: influxdb
+    environment:
+      - INFLUXDB_DB=k6_log
+      - INFLUXDB_HTTP_MAX_BODY_SIZE=0
+    ports:
+      - 8086:8086
+    volumes:
+      - ./infrastructure/data/influxdb:/var/lib/influxdb
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+    ports:
+      - 3000:3000
+    # volumes:
+    #   - ./infrastructure/data/grafana:/var/lib/grafana
+
+  golang:
+    image: gcr.io/bitrun-a14e3/books-api
+    container_name: golang
+    # build: 
+    #   context: ./
+    #   dockerfile: Dockerfile
+    ports:
+      - 8008:8008
+    
