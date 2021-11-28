@@ -2,7 +2,7 @@ package repository
 
 import (
 	"net/http"
-	"time"
+	"server-health/model"
 
 	"github.com/bradhe/stopwatch"
 	"gorm.io/gorm"
@@ -13,7 +13,7 @@ type healthRepository struct {
 }
 
 type IHealthRepository interface {
-	CheckHealth(path string) (bool, time.Duration)
+	CheckHealth(path string) *model.Health
 }
 
 func NewHealthRepository(db *gorm.DB) healthRepository {
@@ -22,11 +22,14 @@ func NewHealthRepository(db *gorm.DB) healthRepository {
 	}
 }
 
-func (h healthRepository) CheckHealth(path string) (bool, time.Duration) {
+func (h healthRepository) CheckHealth(path string) *model.Health {
 	watch := stopwatch.Start()
 	_, err := http.Get(path)
-	if err != nil {
-		return false, 0
+	watch.Stop()
+	health := model.Health{
+		Path:         path,
+		IsAlive:      err == nil,
+		ResponseTime: watch.Milliseconds(),
 	}
-	return true, watch.Milliseconds()
+	return &health
 }
