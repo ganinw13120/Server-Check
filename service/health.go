@@ -7,6 +7,7 @@ import (
 	"server-health/repository"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/line/line-bot-sdk-go/v7/linebot"
 )
@@ -36,12 +37,12 @@ func NewHealthService(
 func (h healthService) WebhookEnter(hook model.LineWebhook) error {
 	for _, v := range hook.Events {
 		if match, _ := regexp.MatchString("delete ", v.Message.Text); match {
-			err := h.removeWishList(v.Source.UserID, v.Message.Text)
+			err := h.removeWishList(v)
 			if err != nil {
 				return err
 			}
 		} else if match, _ := regexp.MatchString("http", v.Message.Text); match {
-			err := h.addWishList(v.Source.UserID, v.Message.Text)
+			err := h.addWishList(v)
 			if err != nil {
 				return err
 			}
@@ -55,16 +56,26 @@ func (h healthService) WebhookEnter(hook model.LineWebhook) error {
 	return nil
 }
 
-func (h healthService) removeWishList(line_id string, message string) error {
-	path := strings.Replace(message, "delete ", "", 1)
+func (h healthService) removeWishList(hook model.WebhookEvent) error {
+	path := strings.Replace(hook.Message.Text, "delete ", "", 1)
 	path = strings.Replace(path, " ", "", 0)
-	err := h.wishListRepository.RemoveWishList(line_id, path)
+	err := h.wishListRepository.RemoveWishList(hook.Source.UserID, path)
+	if err != nil {
+		return nil
+	}
+	replyMessage := linebot.NewTextMessage("ลบสำเร็จ")
+	_, err = h.linebot.ReplyMessage(hook.ReplyToken, replyMessage).Do()
 	return err
 }
 
-func (h healthService) addWishList(line_id string, message string) error {
-	path := strings.Replace(message, " ", "", 0)
-	err := h.wishListRepository.AddWishList(line_id, path)
+func (h healthService) addWishList(hook model.WebhookEvent) error {
+	path := strings.Replace(hook.Message.Text, " ", "", 0)
+	err := h.wishListRepository.AddWishList(hook.Source.UserID, path)
+	if err != nil {
+		return nil
+	}
+	replyMessage := linebot.NewTextMessage("เพิ่มสำเร็จ")
+	_, err = h.linebot.ReplyMessage(hook.ReplyToken, replyMessage).Do()
 	return err
 }
 
@@ -107,6 +118,14 @@ func (h healthService) generateFlexMessage(line_id string, lists []model.Health)
 			isPassed = "Failed"
 			statusColor = "#fc5f51"
 		}
+		var responseTimeColor string
+		if v.ResponseTime < 300*time.Millisecond {
+			responseTimeColor = "#21BF65"
+		} else if v.ResponseTime < 300*time.Millisecond {
+			responseTimeColor = "#d9b638"
+		} else {
+			responseTimeColor = "#fc5f51"
+		}
 		list = fmt.Sprintf(`%s 
 		%s{
 		  "type": "box",
@@ -146,10 +165,24 @@ func (h healthService) generateFlexMessage(line_id string, lists []model.Health)
 				{
 				  "type": "span",
 				  "text": "%v",
-				  "color": "#21BF65",
+				  "color": "%s",
 				  "weight": "bold"
 				}
 			  ]
+			},
+			{
+				"type": "button",
+				"action": {
+					"type": "message",
+					"label": "Delete",
+					"text": "delete %s"
+				},
+				"margin": "lg",
+				"height": "sm",
+				"color": "#eb6a50",
+				"style": "primary",
+				"gravity": "center",
+				"adjustMode": "shrink-to-fit"
 			},
 			{
 			  "type": "separator",
@@ -158,7 +191,7 @@ func (h healthService) generateFlexMessage(line_id string, lists []model.Health)
 		  ],
 		  "paddingTop": "10px",
 		  "paddingBottom": "10px"
-		}`, list, comma, v.Path, isPassed, statusColor, v.ResponseTime)
+		}`, list, comma, v.Path, isPassed, statusColor, v.ResponseTime, responseTimeColor, v.Path)
 	}
 	flexContainer, err := linebot.UnmarshalFlexMessageJSON([]byte(fmt.Sprintf(`{
 		"type": "bubble",

@@ -26,13 +26,8 @@ func New(app *fiber.App, healthHandler handler.IHealthHandler) *route {
 }
 
 func (r route) setUp() {
-	group := r.app.Group("test")
+	group := r.app.Group("webhook")
 	{
-		group.Get("/", r.healthHandler.GetHealth)
-		group.Post("/", r.healthHandler.GetHealth)
+		group.Post("/", r.healthHandler.WebHookHandler)
 	}
-	// group := r.app.Group("books")
-	// {
-	// 	group.Get("/get", r.healthHandler.GetBooks)
-	// }
 }

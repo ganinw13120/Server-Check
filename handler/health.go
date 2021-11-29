@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/go-redis/redis/v8"
 	"github.com/gofiber/fiber/v2"
 	"github.com/line/line-bot-sdk-go/v7/linebot"
 
@@ -14,23 +13,21 @@ import (
 
 type healthHandler struct {
 	healthService service.IHealthService
-	redis         *redis.Client
 	linebot       *linebot.Client
 }
 
 type IHealthHandler interface {
-	GetHealth(*fiber.Ctx) error
+	WebHookHandler(*fiber.Ctx) error
 }
 
-func NewHealthHandler(service service.IHealthService, redis *redis.Client, bot *linebot.Client) healthHandler {
+func NewHealthHandler(service service.IHealthService, bot *linebot.Client) healthHandler {
 	return healthHandler{
 		healthService: service,
-		redis:         redis,
 		linebot:       bot,
 	}
 }
 
-func (h healthHandler) GetHealth(c *fiber.Ctx) error {
+func (h healthHandler) WebHookHandler(c *fiber.Ctx) error {
 	request := model.LineWebhook{}
 	err := ParseRequest(c, &request)
 	if err != nil {

@@ -9,7 +9,6 @@ import (
 	"server-health/service"
 	"time"
 
-	"github.com/go-redis/redis/v8"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/recover"
@@ -50,7 +49,6 @@ func setupFiber() error {
 	app := fiber.New(fiberConfig())
 	app.Use(cors.New(corsConfig()))
 	app.Use(recover.New())
-	redis := setupRedis()
 
 	bot, err := setupBot()
 	if err != nil {
@@ -66,7 +64,7 @@ func setupFiber() error {
 
 	healthService := service.NewHealthService(healthRepository, wishListRepository, bot)
 
-	healthHandler := handler.NewHealthHandler(healthService, redis, bot)
+	healthHandler := handler.NewHealthHandler(healthService, bot)
 
 	router.New(app, healthHandler)
 	err = app.Listen(":" + os.Getenv("PORT"))
@@ -77,12 +75,6 @@ func setupFiber() error {
 func setupBot() (*linebot.Client, error) {
 	bot, err := linebot.New(os.Getenv("LINE_CHANNEL_SECRET"), os.Getenv("LINE_CHANNEL_ACCESS_TOKEN"))
 	return bot, err
-}
-
-func setupRedis() *redis.Client {
-	return redis.NewClient(&redis.Options{
-		Addr: "localhost:6379",
-	})
 }
 
 func setupDatabase() (*gorm.DB, error) {
