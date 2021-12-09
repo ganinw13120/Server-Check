@@ -1,5 +1,5 @@
 steps:
-  - name: "Generate .env File"
+  - name: 'Generate .env File'
     args: ['printenv > .env']
     env: 
       - 'PORT=8008'
