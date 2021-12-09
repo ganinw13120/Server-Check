@@ -4,6 +4,7 @@ go 1.16
 
 require (
 	github.com/bradhe/stopwatch v0.0.0-20190618212248-a58cccc508ea // indirect
+	github.com/go-co-op/gocron v1.11.0 // indirect
 	github.com/go-redis/redis/v8 v8.11.4
 	github.com/gofiber/fiber/v2 v2.22.0
 	github.com/joho/godotenv v1.4.0

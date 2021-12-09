@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/go-co-op/gocron"
 	"github.com/line/line-bot-sdk-go/v7/linebot"
 )
 
@@ -27,11 +28,20 @@ func NewHealthService(
 	wishListRepository repository.IWishListRepository,
 	linebot *linebot.Client,
 ) healthService {
-	return healthService{
+	var service = healthService{
 		healthRepository:   healthRepository,
 		wishListRepository: wishListRepository,
 		linebot:            linebot,
 	}
+	go func() {
+		routine := gocron.NewScheduler(time.UTC)
+		routine.Every(1).Second().Do(func() {
+			// fmt.Println("asd")
+			service.routineCheck()
+		})
+		routine.StartBlocking()
+	}()
+	return service
 }
 
 func (h healthService) WebhookEnter(hook model.LineWebhook) error {
@@ -100,6 +110,124 @@ func (h healthService) showWishList(line_id string) error {
 		return err
 	}
 	return nil
+}
+
+func (h healthService) routineCheck() {
+	lists, err := h.wishListRepository.GetCheckableWishList()
+	if err != nil {
+		fmt.Println("Error occurs during routine checks.")
+		return
+	}
+	var wg sync.WaitGroup
+	healthList := make([]model.Health, 0)
+	for _, v := range lists {
+		wg.Add(1)
+		go func(v model.WishList) {
+			defer wg.Done()
+			health := h.healthRepository.CheckHealth(v.Path)
+			healthList = append(healthList, *health)
+			fmt.Println(health.IsAlive)
+			if !health.IsAlive {
+				go func() {
+					err = h.generateHealthFailureReport(v.LineID, v.Path)
+					if err != nil {
+						fmt.Println("Error occurs during  sending report.")
+						return
+					}
+				}()
+				go func() {
+					err = h.wishListRepository.UpdateWishListFailure(v.LineID, v.Path)
+					if err != nil {
+						fmt.Println("Error occurs during  update report.")
+						return
+					}
+				}()
+			}
+		}(v)
+		wg.Wait()
+	}
+}
+
+func (h healthService) generateHealthFailureReport(line_id string, path string) error {
+	report := fmt.Sprintf(`{
+		"type": "bubble",
+		"size": "mega",
+		"header": {
+		  "type": "box",
+		  "layout": "vertical",
+		  "contents": [
+			{
+			  "type": "box",
+			  "layout": "vertical",
+			  "contents": [
+				{
+				  "type": "text",
+				  "text": "Status",
+				  "color": "#FAFAFA",
+				  "size": "sm"
+				},
+				{
+				  "type": "text",
+				  "text": "Failure Report",
+				  "color": "#FAFAFA",
+				  "size": "xl",
+				  "flex": 4,
+				  "weight": "bold"
+				}
+			  ]
+			}
+		  ],
+		  "paddingAll": "20px",
+		  "backgroundColor": "#de4040",
+		  "spacing": "md",
+		  "height": "100px",
+		  "paddingTop": "22px"
+		},
+		"body": {
+		  "type": "box",
+		  "layout": "vertical",
+		  "contents": [
+			{
+			  "type": "box",
+			  "layout": "vertical",
+			  "contents": [
+				{
+				  "type": "text",
+				  "text": "%s",
+				  "color": "#404040"
+				},
+				{
+				  "type": "text",
+				  "text": "hello, world",
+				  "contents": [
+					{
+					  "type": "span",
+					  "text": "Response Time : ",
+					  "size": "sm"
+					},
+					{
+					  "type": "span",
+					  "text": "70ns",
+					  "color": "#21BF65",
+					  "weight": "bold"
+					}
+				  ]
+				}
+			  ],
+			  "paddingTop": "10px",
+			  "paddingBottom": "10px"
+			}
+		  ],
+		  "backgroundColor": "#F2F2F2"
+		}
+	  }`, path)
+	flexReport, err := linebot.UnmarshalFlexMessageJSON([]byte(report))
+	if err != nil {
+		return err
+	}
+	flexMessage := linebot.NewFlexMessage("Failure Result", flexReport)
+	_, err = h.linebot.PushMessage(line_id, flexMessage).Do()
+	return err
 }
 
 func (h healthService) generateFlexMessage(line_id string, lists []model.Health) error {
