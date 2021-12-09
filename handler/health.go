@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -31,17 +30,6 @@ func NewHealthHandler(service service.IHealthService, bot *linebot.Client) healt
 func (h healthHandler) WebHookHandler(c *fiber.Ctx) error {
 	request := model.LineWebhook{}
 	err := ParseRequest(c, &request)
-	if err != nil {
-		fmt.Println(err)
-		return c.Status(http.StatusOK).JSON(err)
-	}
-	var raw map[interface{}]interface{}
-	err = ParseRequest(c, &raw)
-	fmt.Println(err)
-	fmt.Println(raw)
-	raw2, err := json.Marshal(raw)
-	fmt.Println(raw2)
-	err = h.healthService.WebhookEnter(request)
 	if err != nil {
 		fmt.Println(err)
 		return c.Status(http.StatusOK).JSON(err)

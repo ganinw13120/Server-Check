@@ -36,7 +36,6 @@ func NewHealthService(
 	go func() {
 		routine := gocron.NewScheduler(time.UTC)
 		routine.Every(1).Second().Do(func() {
-			// fmt.Println("asd")
 			service.routineCheck()
 		})
 		routine.StartBlocking()
@@ -105,6 +104,9 @@ func (h healthService) showWishList(line_id string) error {
 		}(v)
 		wg.Wait()
 	}
+	if len(healthList) == 0 {
+		return h.generateEmptyFlexMessage(line_id)
+	}
 	err = h.generateFlexMessage(line_id, healthList)
 	if err != nil {
 		return err
@@ -126,7 +128,6 @@ func (h healthService) routineCheck() {
 			defer wg.Done()
 			health := h.healthRepository.CheckHealth(v.Path)
 			healthList = append(healthList, *health)
-			fmt.Println(health.IsAlive)
 			if !health.IsAlive {
 				go func() {
 					err = h.generateHealthFailureReport(v.LineID, v.Path)
@@ -364,6 +365,66 @@ func (h healthService) generateFlexMessage(line_id string, lists []model.Health)
 		  "backgroundColor": "#F2F2F2"
 		}
 	  }`, list)))
+	if err != nil {
+		return err
+	}
+	flexMessage := linebot.NewFlexMessage("Status Result", flexContainer)
+	_, err = h.linebot.PushMessage(line_id, flexMessage).Do()
+	return err
+}
+
+func (h healthService) generateEmptyFlexMessage(line_id string) error {
+	flexContainer, err := linebot.UnmarshalFlexMessageJSON([]byte(fmt.Sprintf(`
+	{
+		"type": "bubble",
+		"size": "mega",
+		"header": {
+		  "type": "box",
+		  "layout": "vertical",
+		  "contents": [
+			{
+			  "type": "box",
+			  "layout": "vertical",
+			  "contents": [
+				{
+				  "type": "text",
+				  "text": "ยังไม่มีลิงค์ที่เฝ้าระวัง",
+				  "color": "#FAFAFA",
+				  "size": "xl",
+				  "flex": 4,
+				  "weight": "bold"
+				}
+			  ]
+			}
+		  ],
+		  "paddingAll": "20px",
+		  "backgroundColor": "#21BF65",
+		  "spacing": "md",
+		  "paddingTop": "22px"
+		},
+		"body": {
+		  "type": "box",
+		  "layout": "vertical",
+		  "contents": [
+			{
+			  "type": "button",
+			  "action": {
+				"type": "message",
+				"label": "เพิ่มเลย",
+				"text": "เพิ่มข้อมูล"
+			  },
+			  "margin": "lg",
+			  "height": "sm",
+			  "color": "#21BF65",
+			  "style": "primary",
+			  "gravity": "center",
+			  "adjustMode": "shrink-to-fit"
+			}
+		  ],
+		  "backgroundColor": "#F2F2F2"
+		}
+	  }
+	  `)))
 	if err != nil {
 		return err
 	}
