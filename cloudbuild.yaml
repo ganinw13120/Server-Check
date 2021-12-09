@@ -6,14 +6,14 @@ steps:
     entrypoint: npm
     args: ["run", "create-env"]
     env:
-      - 'PORT=8008'
-      - 'LINE_CHANNEL_ACCESS_TOKEN=5c7KyWZuh1MwM9om3AwoDllAjW1vf2gXp9xhgPwhTUHwKoHFu5qydg0v7Dp07U8U7TsQph5MxQ2xqyDgTMMFba5gJs73RDjrogIT5BynZaeV4UJoGYNGLFp24tgg0mI1xjiftJQcToTndHqXKtW4eAdB04t89/1O/w1cDnyilFU='
-      - 'LINE_CHANNEL_SECRET=c0459d527eef4e7b6f095f44976dfb9d'
-      - 'DB_USER=root'
-      - 'DB_PASSWORD=1@Wwwwww'
-      - 'DB_ADDRESS=159.223.66.143'
-      - 'DB_PORT=3306'
-      - 'DB_NAME=health'
+      - 'PORT=$_PORT'
+      - 'LINE_CHANNEL_ACCESS_TOKEN=$_LINE_CHANNEL_ACCESS_TOKEN'
+      - 'LINE_CHANNEL_SECRET=$_LINE_CHANNEL_SECRET'
+      - 'DB_USER=$_DB_USER'
+      - 'DB_PASSWORD=$_DB_PASSWORD'
+      - 'DB_ADDRESS=$_DB_ADDRESS'
+      - 'DB_PORT=$_DB_PORT'
+      - 'DB_NAME=$_DB_NAME'
   - name: 'gcr.io/cloud-builders/docker'
     args: ['build', '-t', 'gcr.io/$PROJECT_ID/$TRIGGER_NAME', '.']
   - name: 'gcr.io/cloud-builders/docker'
