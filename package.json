@@ -1,5 +1,5 @@
 {
   "scripts": {
-    "create-env" : "echo testing.."
+    "create-env": "printenv > .env"
   }
 }
