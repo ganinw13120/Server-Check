@@ -34,8 +34,10 @@ func (h healthHandler) WebHookHandler(c *fiber.Ctx) error {
 		fmt.Println(err)
 		return c.Status(http.StatusOK).JSON(err)
 	}
-	type test struct {
-		gan string
+	err = h.healthService.WebhookEnter(request)
+	if err != nil {
+		fmt.Println(err)
+		return c.Status(http.StatusOK).JSON(err)
 	}
 	return c.Status(http.StatusOK).JSON(map[string]string{
 		"status": "success",

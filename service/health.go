@@ -102,8 +102,8 @@ func (h healthService) showWishList(line_id string) error {
 			healthList = append(healthList, *health)
 			defer wg.Done()
 		}(v)
-		wg.Wait()
 	}
+	wg.Wait()
 	if len(healthList) == 0 {
 		return h.generateEmptyFlexMessage(line_id)
 	}
@@ -145,8 +145,8 @@ func (h healthService) routineCheck() {
 				}()
 			}
 		}(v)
-		wg.Wait()
 	}
+	wg.Wait()
 }
 
 func (h healthService) generateHealthFailureReport(line_id string, path string) error {
