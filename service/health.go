@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-co-op/gocron"
 	"github.com/line/line-bot-sdk-go/v7/linebot"
 )
 
@@ -33,13 +32,13 @@ func NewHealthService(
 		wishListRepository: wishListRepository,
 		linebot:            linebot,
 	}
-	go func() {
-		routine := gocron.NewScheduler(time.UTC)
-		routine.Every(1).Second().Do(func() {
-			service.routineCheck()
-		})
-		routine.StartBlocking()
-	}()
+	// go func() {
+	// 	routine := gocron.NewScheduler(time.UTC)
+	// 	routine.Every(1).Second().Do(func() {
+	// 		service.routineCheck()
+	// 	})
+	// 	routine.StartBlocking()
+	// }()
 	return service
 }
 
